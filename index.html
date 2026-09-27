@@ -1,0 +1,416 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#f7f7f5">
+  <title>车间知识图谱建图工作台 · Demo</title>
+  <script src="https://cdn.jsdelivr.net/npm/vue@3.5.13/dist/vue.global.prod.js"></script>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f5f5f2;
+      --paper: #fff;
+      --ink: #171717;
+      --sub: #696967;
+      --line: #e7e6e2;
+      --soft: #f4f3f0;
+      --red: #d92727;
+      --red-soft: #fff0ef;
+      --green: #18794e;
+      --green-soft: #ecf7f0;
+      --amber: #94600a;
+      --amber-soft: #fff6df;
+      --shadow: 0 16px 40px rgba(22, 22, 20, .055);
+      font-family: Inter, "Aptos", "Microsoft YaHei", "PingFang SC", sans-serif;
+    }
+    * { box-sizing: border-box; }
+    body { margin:0; background:var(--bg); color:var(--ink); }
+    button, textarea, input { font:inherit; }
+    button { cursor:pointer; }
+    .topbar { min-height:68px; padding:0 clamp(18px,4vw,56px); display:flex; align-items:center; justify-content:space-between; border-bottom:1px solid var(--line); background:rgba(255,255,255,.88); }
+    .brand { display:flex; align-items:center; gap:12px; font-weight:700; letter-spacing:.02em; }
+    .brand-mark { width:32px; height:32px; border-radius:9px; display:grid; place-items:center; color:#fff; background:var(--red); font-size:15px; font-weight:800; }
+    .brand small { display:block; margin-top:2px; color:var(--sub); font-weight:500; font-size:11px; letter-spacing:.12em; }
+    .top-meta { color:var(--sub); font-size:12px; display:flex; align-items:center; gap:10px; }
+    .live-dot { width:7px; height:7px; border-radius:50%; background:var(--green); box-shadow:0 0 0 4px var(--green-soft); }
+    main { max-width:1440px; margin:auto; padding:32px clamp(16px,4vw,56px) 60px; }
+    .hero { display:flex; justify-content:space-between; align-items:flex-end; gap:20px; margin-bottom:25px; }
+    .eyebrow { color:var(--red); font-size:11px; letter-spacing:.16em; font-weight:700; text-transform:uppercase; margin:0 0 10px; }
+    h1 { font-size:clamp(26px,3.1vw,40px); line-height:1.15; letter-spacing:-.045em; margin:0; }
+    .hero-copy { max-width:740px; color:var(--sub); margin:11px 0 0; line-height:1.7; font-size:14px; }
+    .hero-actions { display:flex; gap:9px; flex-shrink:0; }
+    .button { border:1px solid var(--line); background:var(--paper); color:var(--ink); border-radius:9px; padding:10px 14px; font-size:12px; font-weight:650; transition:.18s ease; }
+    .button:hover { border-color:#c9c7c1; transform:translateY(-1px); }
+    .button.primary { color:#fff; border-color:var(--red); background:var(--red); box-shadow:0 5px 12px rgba(217,39,39,.16); }
+    .button.primary:hover { background:#bd1e1e; }
+    .button:focus-visible, input:focus-visible, textarea:focus-visible { outline:3px solid rgba(217,39,39,.2); outline-offset:2px; }
+    .stats { display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin:0 0 24px; }
+    .stat { background:var(--paper); border:1px solid var(--line); border-radius:12px; padding:14px 16px; box-shadow:0 2px 9px rgba(20,20,20,.02); }
+    .stat-label { color:var(--sub); font-size:11px; }
+    .stat-value { margin-top:7px; font-size:23px; font-weight:720; letter-spacing:-.04em; }
+    .stat-foot { font-size:10px; color:var(--sub); margin-top:4px; }
+    .flow { display:grid; grid-template-columns:repeat(5,1fr); background:var(--paper); border:1px solid var(--line); border-radius:13px; padding:8px; margin-bottom:16px; box-shadow:0 2px 9px rgba(20,20,20,.02); }
+    .flow-step { border:0; background:transparent; color:var(--sub); display:flex; gap:10px; align-items:center; text-align:left; padding:11px 12px; border-radius:9px; min-width:0; }
+    .flow-step:hover { background:var(--soft); }
+    .flow-step.active { background:var(--red-soft); color:var(--ink); }
+    .flow-step.done .step-no { color:var(--green); border-color:#b7ddc5; background:var(--green-soft); }
+    .step-no { flex:0 0 28px; height:28px; border:1px solid var(--line); border-radius:50%; display:grid; place-items:center; font-size:10px; font-weight:700; }
+    .flow-step.active .step-no { border-color:var(--red); background:var(--red); color:#fff; }
+    .step-name { display:block; font-size:12px; font-weight:680; white-space:nowrap; }
+    .step-caption { display:block; font-size:10px; color:var(--sub); margin-top:3px; white-space:nowrap; }
+    .workspace { display:grid; grid-template-columns:minmax(0,1.72fr) minmax(320px,.88fr); gap:16px; align-items:stretch; }
+    .panel { border:1px solid var(--line); border-radius:14px; background:var(--paper); box-shadow:var(--shadow); overflow:hidden; }
+    .panel-head { display:flex; justify-content:space-between; align-items:flex-start; gap:14px; padding:17px 19px; border-bottom:1px solid var(--line); }
+    .panel-title { font-size:13px; font-weight:720; margin:0; }
+    .panel-sub { color:var(--sub); font-size:11px; margin:5px 0 0; }
+    .head-tools { display:flex; align-items:center; gap:8px; }
+    .mini-button { border:1px solid var(--line); background:var(--paper); border-radius:7px; padding:7px 9px; color:var(--sub); font-size:10px; }
+    .mini-button:hover { border-color:#c9c7c1; color:var(--ink); }
+    .view-select { color:var(--green); background:var(--green-soft); padding:6px 9px; border-radius:100px; font-size:10px; font-weight:700; }
+    .graph-wrap { padding:10px 8px 0; }
+    .graph-svg { width:100%; height:auto; display:block; overflow:visible; }
+    .graph-grid { fill:url(#grid); }
+    .edge { fill:none; stroke:#bdbbb5; stroke-width:1.7; marker-end:url(#arrow); transition:.2s; }
+    .edge.pending { stroke:#d6a5a1; stroke-dasharray:5 5; }
+    .edge.active { stroke:var(--red); stroke-width:2.4; }
+    .edge-label { font-size:10px; fill:#76746f; text-anchor:middle; }
+    .node-card { cursor:pointer; transition:transform .16s, filter .16s; }
+    .node-card:hover { filter:drop-shadow(0 5px 7px rgba(0,0,0,.11)); }
+    .node-rect { fill:#fff; stroke:#dfddd7; stroke-width:1.2; rx:10; }
+    .node-card.selected .node-rect { stroke:var(--red); stroke-width:2; }
+    .node-card.approved .node-rect { stroke:#aad2b8; }
+    .node-card.cause .node-rect { fill:#fff8e7; }
+    .node-card.fault .node-rect { fill:#fff2f1; }
+    .node-card.action .node-rect { fill:#f7f3ff; }
+    .node-card.outcome .node-rect { fill:#eff8f1; }
+    .node-title { fill:#171717; font-size:12px; font-weight:700; text-anchor:middle; }
+    .node-type { fill:#77746e; font-size:9px; text-anchor:middle; }
+    .node-state { fill:#d92727; font-size:8px; font-weight:700; text-anchor:middle; }
+    .node-card.approved .node-state { fill:#18794e; }
+    .graph-legend { display:flex; gap:15px; align-items:center; padding:5px 19px 14px; color:var(--sub); font-size:10px; flex-wrap:wrap; }
+    .legend-mark { width:8px; height:8px; border-radius:3px; background:var(--red); display:inline-block; margin-right:6px; }
+    .legend-mark.approved { background:var(--green); }
+    .legend-line { width:17px; height:0; border-top:2px dashed #d6a5a1; display:inline-block; margin-right:6px; vertical-align:middle; }
+    .source-strip { margin:0 16px 16px; padding:10px 12px; border-radius:9px; background:#faf9f7; display:flex; justify-content:space-between; gap:12px; align-items:center; font-size:10px; color:var(--sub); }
+    .source-strip strong { color:var(--ink); }
+    .right-panel { display:flex; flex-direction:column; }
+    .stage-content { padding:17px 19px 19px; flex:1; }
+    .stage-content h3 { margin:0 0 7px; font-size:16px; letter-spacing:-.02em; }
+    .stage-description { color:var(--sub); line-height:1.65; font-size:11px; margin:0 0 16px; }
+    .method-tag { display:inline-flex; align-items:center; gap:6px; border-radius:6px; padding:5px 8px; background:var(--red-soft); color:var(--red); font-weight:700; font-size:9px; letter-spacing:.04em; margin-bottom:11px; }
+    .schema-list { display:grid; gap:7px; }
+    .schema-item { display:grid; grid-template-columns:94px 1fr; gap:9px; border-bottom:1px solid #f0efec; padding:7px 0; font-size:10px; }
+    .schema-item span:first-child { color:var(--sub); }
+    .schema-item span:last-child { font-weight:600; }
+    .textarea { resize:vertical; min-height:96px; width:100%; border:1px solid var(--line); border-radius:9px; padding:11px; color:var(--ink); background:#fcfcfb; font-size:11px; line-height:1.7; }
+    .text-label { display:block; margin:10px 0 6px; font-size:10px; color:var(--sub); font-weight:650; }
+    .entity-chips { display:flex; gap:6px; flex-wrap:wrap; margin:12px 0; }
+    .chip { font-size:9px; color:#514e49; background:#f3f2ef; border:1px solid #e8e6e1; border-radius:6px; padding:5px 7px; }
+    .chip.red { background:var(--red-soft); color:#ad2424; border-color:#f3d1ce; }
+    .chip.gold { background:var(--amber-soft); color:var(--amber); border-color:#f1e4bf; }
+    .candidate-list { display:grid; gap:6px; max-height:240px; overflow:auto; padding-right:3px; }
+    .candidate { display:grid; grid-template-columns:1fr auto; align-items:center; gap:8px; border:1px solid #eeece8; border-radius:8px; padding:8px 9px; }
+    .candidate strong { font-size:10px; display:block; }
+    .candidate small { color:var(--sub); display:block; font-size:9px; margin-top:3px; }
+    .score { color:var(--sub); font-size:10px; font-variant-numeric:tabular-nums; }
+    .range-row { display:flex; justify-content:space-between; align-items:center; font-size:10px; color:var(--sub); margin:12px 0 4px; }
+    input[type=range] { accent-color:var(--red); width:100%; }
+    .candidate-actions { display:flex; gap:6px; margin-top:10px; }
+    .candidate-actions button { flex:1; }
+    .review-list { display:grid; gap:7px; max-height:230px; overflow:auto; }
+    .review-row { border:1px solid #eeece8; border-radius:8px; padding:9px; }
+    .review-triple { font-size:10px; line-height:1.6; }
+    .review-triple b { color:#252421; }
+    .review-meta { display:flex; justify-content:space-between; color:var(--sub); font-size:9px; margin-top:6px; }
+    .review-buttons { display:flex; gap:6px; margin-top:8px; }
+    .review-buttons button { flex:1; padding:6px 7px; }
+    .btn-approve { color:var(--green); background:var(--green-soft); border:1px solid #d5ebdc; }
+    .btn-reject { color:#8a4c49; background:#fff5f3; border:1px solid #f0dfdd; }
+    .trust-box { margin-top:13px; border-left:3px solid var(--red); padding:9px 10px; background:#faf9f7; color:var(--sub); font-size:10px; line-height:1.6; }
+    .stage-footer { border-top:1px solid var(--line); padding:12px 18px; display:flex; justify-content:space-between; align-items:center; gap:10px; }
+    .stage-footer small { font-size:9px; color:var(--sub); }
+    .bottom-grid { display:grid; grid-template-columns:1.3fr .7fr; gap:16px; margin-top:16px; }
+    .method-panel, .evidence-panel { background:var(--paper); border:1px solid var(--line); border-radius:14px; padding:17px 19px; box-shadow:0 3px 14px rgba(20,20,20,.025); }
+    .subhead { display:flex; justify-content:space-between; gap:10px; align-items:flex-start; }
+    .subhead h2 { font-size:13px; margin:0; }
+    .subhead p { margin:5px 0 0; color:var(--sub); font-size:10px; }
+    .method-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:0 14px; margin-top:13px; }
+    .method { position:relative; padding:11px 8px 9px 31px; border-top:1px solid #efeeeb; }
+    .method-no { position:absolute; left:0; top:10px; width:21px; height:21px; border-radius:6px; display:grid; place-items:center; background:var(--red-soft); color:var(--red); font-size:9px; font-weight:750; }
+    .method strong { font-size:10px; display:block; }
+    .method span { color:var(--sub); font-size:9px; line-height:1.5; display:block; margin-top:4px; }
+    .evidence-list { display:grid; gap:9px; margin-top:14px; }
+    .evidence { display:flex; gap:9px; align-items:flex-start; font-size:10px; color:var(--sub); line-height:1.5; }
+    .evidence-icon { flex:0 0 19px; height:19px; border-radius:6px; display:grid; place-items:center; color:var(--green); background:var(--green-soft); font-size:10px; font-weight:800; }
+    .evidence strong { color:var(--ink); }
+    .toast { position:fixed; bottom:20px; left:50%; transform:translateX(-50%); z-index:5; padding:10px 15px; border-radius:9px; background:#20201e; color:#fff; box-shadow:var(--shadow); font-size:11px; }
+    .disclaimer { text-align:center; margin:18px 0 0; color:var(--sub); font-size:10px; }
+    @media (max-width:980px) { .workspace { grid-template-columns:1fr; } .right-panel { min-height:400px; } .bottom-grid { grid-template-columns:1fr; } }
+    @media (max-width:680px) {
+      .topbar { min-height:58px; padding-inline:15px; }
+      main { padding-top:24px; }
+      .hero { display:block; }
+      .hero-actions { margin-top:15px; }
+      .stats { grid-template-columns:repeat(2,1fr); }
+      .flow { grid-template-columns:1fr; padding:5px; }
+      .flow-step { padding:7px 10px; }
+      .step-caption { display:none; }
+      .graph-wrap { overflow-x:auto; }
+      .graph-svg { min-width:650px; }
+      .method-grid { grid-template-columns:repeat(2,1fr); }
+      .top-meta .meta-text { display:none; }
+      .source-strip { align-items:flex-start; flex-direction:column; }
+    }
+  </style>
+</head>
+<body>
+  <div id="app" v-cloak>
+    <header class="topbar">
+      <div class="brand"><span class="brand-mark">KG</span><span>SHOPFLOOR INTELLIGENCE<small>INDUSTRIAL KNOWLEDGE GRAPH WORKBENCH</small></span></div>
+      <div class="top-meta"><i class="live-dot"></i><span class="meta-text">本地交互演示 · 数据仅在当前页面运行</span><span>原理 Demo</span></div>
+    </header>
+    <main>
+      <section class="hero">
+        <div>
+          <p class="eyebrow">FROM WORK ORDER TO TRUSTED KNOWLEDGE</p>
+          <h1>让每一次故障，都成为可复用的知识</h1>
+          <p class="hero-copy">演示制造现场知识图谱的构建链路：领域本体先行，AI 辅助抽取与扩增，规则和置信度筛选，再由专家审核后入图。重点不是“自动画图”，而是让每条关系有来源、有限定、可追溯。</p>
+        </div>
+        <div class="hero-actions">
+          <button class="button" @click="resetDemo">重置演示</button>
+          <button class="button primary" @click="nextStage">{{ stageIndex < 4 ? '继续演示　→' : '重新走一遍　↻' }}</button>
+        </div>
+      </section>
+
+      <section class="stats" aria-label="当前演示状态">
+        <div class="stat"><div class="stat-label">知识实体</div><div class="stat-value">{{ visibleNodeCount }}<span style="font-size:12px;color:var(--sub);font-weight:500"> 个</span></div><div class="stat-foot">来自一条示例维修工单</div></div>
+        <div class="stat"><div class="stat-label">候选关系</div><div class="stat-value">{{ relationCount }}<span style="font-size:12px;color:var(--sub);font-weight:500"> 条</span></div><div class="stat-foot">设备 · 故障 · 原因 · 处置</div></div>
+        <div class="stat"><div class="stat-label">专家已确认</div><div class="stat-value">{{ approvedCount }}<span style="font-size:12px;color:var(--sub);font-weight:500"> / {{ relations.length }}</span></div><div class="stat-foot">未确认关系以虚线显示</div></div>
+        <div class="stat"><div class="stat-label">已绑定来源</div><div class="stat-value">{{ relations.length }}<span style="font-size:12px;color:var(--sub);font-weight:500"> / {{ relations.length }}</span></div><div class="stat-foot">演示关系均关联工单片段</div></div>
+      </section>
+
+      <nav class="flow" aria-label="知识图谱建图流程">
+        <button v-for="(step, i) in stages" :key="step.short" class="flow-step" :class="{active:stageIndex===i,done:stageIndex>i}" :aria-current="stageIndex===i?'step':null" @click="stageIndex=i">
+          <span class="step-no">{{ stageIndex > i ? '✓' : '0'+(i+1) }}</span><span><span class="step-name">{{ step.short }}</span><span class="step-caption">{{ step.caption }}</span></span>
+        </button>
+      </nav>
+
+      <section class="workspace">
+        <article class="panel graph-panel">
+          <div class="panel-head">
+            <div><h2 class="panel-title">故障知识关系图</h2><p class="panel-sub">点击节点查看类型、依据、适用范围与审核状态</p></div>
+            <div class="head-tools"><span class="view-select">{{ approvedCount ? '审核中 / 已沉淀' : '候选图谱' }}</span><button class="mini-button" @click="selectedNodeId='machine'">定位根节点</button></div>
+          </div>
+          <div class="graph-wrap">
+            <svg class="graph-svg" viewBox="0 0 700 390" role="img" aria-label="设备故障原因和处置结果的知识图谱示意">
+              <defs>
+                <pattern id="grid" width="22" height="22" patternUnits="userSpaceOnUse"><circle cx="1" cy="1" r=".8" fill="#e9e7e2" /></pattern>
+                <marker id="arrow" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L0,6 L6,3 z" fill="#aaa8a2" /></marker>
+                <marker id="arrow-red" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L0,6 L6,3 z" fill="#d92727" /></marker>
+              </defs>
+              <rect class="graph-grid" x="0" y="0" width="700" height="390" rx="10" />
+              <g v-for="relation in relations" :key="relation.id">
+                <path :d="relation.path" class="edge" :class="{pending:relation.status==='pending',active:selectedRelationId===relation.id}" :style="relation.status==='approved' ? 'stroke:#18794e;stroke-dasharray:none;marker-end:url(#arrow)' : ''" />
+                <text class="edge-label" :x="relation.labelX" :y="relation.labelY">{{ relation.predicate }}</text>
+              </g>
+              <g v-for="node in nodes" :key="node.id" class="node-card" :class="[node.type,{selected:selectedNodeId===node.id,approved:node.approved}]" :transform="`translate(${node.x},${node.y})`" role="button" tabindex="0" :aria-label="`查看节点：${node.label}`" @click="selectNode(node.id)" @keydown.enter="selectNode(node.id)">
+                <rect class="node-rect" :width="node.w" :height="node.h" />
+                <text class="node-title" :x="node.w/2" y="27">{{ node.label }}</text>
+                <text class="node-type" :x="node.w/2" y="44">{{ node.typeName }}</text>
+                <text class="node-state" :x="node.w/2" y="59">{{ node.approved ? '✓ 已审核' : '● 候选知识' }}</text>
+              </g>
+            </svg>
+          </div>
+          <div class="graph-legend"><span><i class="legend-mark"></i>候选知识节点</span><span><i class="legend-mark approved"></i>已审核</span><span><i class="legend-line"></i>待审核关系</span><span>→ 有方向的关系</span></div>
+          <div class="source-strip"><span><strong>来源：</strong>示例工单 WO-2026-0418 · 维修班组记录</span><span><strong>知识状态：</strong>{{ approvedCount ? '部分关系已人工确认' : '候选，等待审核' }}</span></div>
+        </article>
+
+        <aside class="panel right-panel">
+          <div class="panel-head"><div><h2 class="panel-title">建图控制台</h2><p class="panel-sub">{{ currentStage.english }} · {{ currentStage.short }}</p></div><span class="view-select">{{ stageIndex+1 }} / 5</span></div>
+          <div class="stage-content">
+            <span class="method-tag">{{ currentStage.method }}</span>
+            <h3>{{ currentStage.title }}</h3>
+            <p class="stage-description">{{ currentStage.description }}</p>
+
+            <template v-if="stageIndex===0">
+              <div class="schema-list">
+                <div class="schema-item"><span>实体类型</span><span>设备 · 部件 · 故障 · 原因 · 措施 · 结果</span></div>
+                <div class="schema-item"><span>关系约束</span><span>设备包含部件；现象关联原因；措施关联结果</span></div>
+                <div class="schema-item"><span>关键属性</span><span>机型、工况、时间、来源、审核状态</span></div>
+                <div class="schema-item"><span>设计原则</span><span>先定义语义边界，再让模型填充候选知识</span></div>
+              </div>
+              <div class="trust-box">本体不是把所有术语列成词典，而是先约定“什么是设备/故障/措施，以及它们允许怎样关联”。</div>
+            </template>
+
+            <template v-else-if="stageIndex===1">
+              <label class="text-label" for="work-order">原始工单文本</label>
+              <textarea id="work-order" class="textarea" v-model="workOrder" aria-label="编辑示例维修工单"></textarea>
+              <div class="entity-chips"><span class="chip red">嵌套实体识别</span><span class="chip">别名归一</span><span class="chip">原文证据定位</span></div>
+              <button class="button primary" style="width:100%" @click="extractCandidates">{{ extracted ? '✓ 已抽取候选实体' : '运行 LLM 候选抽取' }}</button>
+            </template>
+
+            <template v-else-if="stageIndex===2">
+              <div class="range-row"><span>入选置信度阈值</span><strong>{{ threshold }}%</strong></div>
+              <input type="range" min="40" max="95" step="5" v-model.number="threshold" aria-label="关系置信度阈值">
+              <p class="stage-description" style="margin:8px 0 12px">阈值只用于决定“进入审核队列”还是“暂缓复核”，不能证明知识为真。</p>
+              <div class="candidate-list">
+                <div class="candidate" v-for="rel in relations" :key="rel.id">
+                  <span><strong>{{ rel.subject }} → {{ rel.predicate }} → {{ rel.object }}</strong><small>{{ rel.source }}</small></span>
+                  <span class="score">{{ Math.round(rel.confidence*100) }}%<br><small :style="rel.confidence*100>=threshold?'color:var(--green)':'color:var(--amber)'">{{ rel.confidence*100>=threshold?'待审核':'复核' }}</small></span>
+                </div>
+              </div>
+              <div class="trust-box"><strong>负样本检查：</strong>“本周盘点轴承库存”提到了轴承，但不是故障；“巡检未发现轴承温度异常”包含故障词，却是否定事件。实体提取后还要判定事件语境。</div>
+              <div class="trust-box">规则校验可检查类型、必填属性、设备型号与关系约束。OWL/SHACL 一类机制能查结构一致性，但不能替代现场事实核验。</div>
+            </template>
+
+            <template v-else-if="stageIndex===3">
+              <div class="review-list">
+                <div class="review-row" v-for="rel in relations" :key="rel.id">
+                  <div class="review-triple"><b>{{ rel.subject }}</b> —{{ rel.predicate }}→ <b>{{ rel.object }}</b></div>
+                  <div class="review-meta"><span>{{ rel.source }}</span><span>{{ Math.round(rel.confidence*100) }}% · {{ rel.status==='approved'?'已通过':rel.status==='rejected'?'已拒绝':'待确认' }}</span></div>
+                  <div class="review-buttons" v-if="rel.status==='pending'"><button class="mini-button btn-approve" @click="reviewRelation(rel.id,'approved')">✓ 确认入图</button><button class="mini-button btn-reject" @click="reviewRelation(rel.id,'rejected')">暂不采纳</button></div>
+                  <div class="review-buttons" v-else><button class="mini-button" @click="reviewRelation(rel.id,'pending')">撤销审核</button></div>
+                </div>
+              </div>
+              <div class="trust-box">高风险维修措施必须由授权专业人员确认；不因模型置信度高就跳过工艺规程或安全许可。</div>
+            </template>
+
+            <template v-else>
+              <div v-if="selectedNode" class="schema-list">
+                <div class="schema-item"><span>当前节点</span><span>{{ selectedNode.label }}</span></div>
+                <div class="schema-item"><span>节点类型</span><span>{{ selectedNode.typeName }}</span></div>
+                <div class="schema-item"><span>来源证据</span><span>{{ selectedNode.source }}</span></div>
+                <div class="schema-item"><span>适用范围</span><span>{{ selectedNode.scope }}</span></div>
+                <div class="schema-item"><span>审核状态</span><span>{{ selectedNode.approved ? '人工确认' : '候选知识' }}</span></div>
+              </div>
+              <div class="entity-chips"><span class="chip red">实体去重</span><span class="chip">来源追溯</span><span class="chip gold">时效/适用条件</span></div>
+              <div class="trust-box">最终进入图谱的关系应保留来源片段、设备型号、有效时间、审核人和版本。单条工单中的“原因”不应自动升级为普遍因果规律。</div>
+            </template>
+          </div>
+          <div class="stage-footer"><small>步骤 {{ stageIndex+1 }} / 5 · {{ currentStage.footer }}</small><button class="mini-button" @click="stageIndex=Math.max(0,stageIndex-1)" :disabled="stageIndex===0">← 上一步</button></div>
+        </aside>
+      </section>
+
+      <section class="bottom-grid">
+        <article class="method-panel">
+          <div class="subhead"><div><h2>推荐建图方法 · 不是“让大模型自由画图”</h2><p>精度来自约束、证据、校验与反馈的组合</p></div><span class="view-select">METHOD STACK</span></div>
+          <div class="method-grid">
+            <div class="method"><b class="method-no">01</b><strong>本体先行</strong><span>设备层级、故障类型、关系边界由领域专家定义</span></div>
+            <div class="method"><b class="method-no">02</b><strong>权威数据优先</strong><span>设备ID、报警码、时间取自主数据/工单系统</span></div>
+            <div class="method"><b class="method-no">03</b><strong>LLM 抽候选</strong><span>从自由文本识别嵌套实体、关系及原文证据</span></div>
+            <div class="method"><b class="method-no">04</b><strong>实体对齐</strong><span>别名映射、设备主数据匹配、重复实体消歧</span></div>
+            <div class="method"><b class="method-no">05</b><strong>规则 + 置信筛选</strong><span>结构约束、来源校验、冲突检测、低置信复核</span></div>
+            <div class="method"><b class="method-no">06</b><strong>专家审核与版本化</strong><span>确认后入图；保留谁、何时、依据什么修改</span></div>
+          </div>
+        </article>
+        <article class="evidence-panel">
+          <div class="subhead"><div><h2>把“准确”拆成可检查的质量门</h2><p>图谱结构正确 ≠ 现场结论正确</p></div></div>
+          <div class="evidence-list">
+            <div class="evidence"><i class="evidence-icon">✓</i><span><strong>抽取质量</strong>：实体/关系 Precision、Recall、F1，分设备类型评估</span></div>
+            <div class="evidence"><i class="evidence-icon">✓</i><span><strong>证据质量</strong>：每条边可回到原始工单、手册版本和字段</span></div>
+            <div class="evidence"><i class="evidence-icon">✓</i><span><strong>适用性</strong>：型号、工况、时间有效期和否定语境都能区分</span></div>
+            <div class="evidence"><i class="evidence-icon">✓</i><span><strong>业务验证</strong>：维修专家抽检，跟踪错误建议与重复故障</span></div>
+          </div>
+        </article>
+      </section>
+      <p class="disclaimer">演示数据为教学示例；页面不代表 Bosch / SICK 的内部系统、模型或接口实现，也不执行任何设备控制操作。</p>
+    </main>
+    <div v-if="toast" class="toast" role="status">{{ toast }}</div>
+  </div>
+
+  <script>
+    const { createApp } = Vue;
+    createApp({
+      data() {
+        return {
+          stageIndex: 0,
+          threshold: 70,
+          extracted: false,
+          selectedNodeId: 'machine',
+          selectedRelationId: null,
+          toast: '',
+          toastTimer: null,
+          workOrder: '机器人第二轴减速机轴承温度异常，设备报警停机。检查发现润滑不足，补充润滑后设备恢复。',
+          stages: [
+            { short:'定义本体', caption:'先确定语义边界', english:'DOMAIN MODEL', method:'STEP 01 · ONTOLOGY-FIRST', title:'先定“什么能连什么”', description:'领域专家先约定实体类别、关系类型和必要属性。大模型只能在这个边界里提出候选，不能自行发明知识结构。', footer:'建立领域词表与关系约束' },
+            { short:'抽取候选', caption:'保留原文证据', english:'LLM EXTRACTION', method:'STEP 02 · CANDIDATE EXTRACTION', title:'模型提候选，不直接写入知识库', description:'从工单文本中识别嵌套实体、故障现象、可能原因和处置结果，并为每个候选标出原文证据片段。', footer:'可编辑文本后再次运行' },
+            { short:'过滤校验', caption:'置信度 + 规则', english:'QUALITY GATES', method:'STEP 03 · CONFIDENCE + RULES', title:'低置信、冲突和不适用项先拦下来', description:'置信度用于排序复核优先级；结构规则检查类型、字段、关系和设备型号。二者都不能单独证明事实真实。', footer:'阈值调整会改变候选集' },
+            { short:'专家审核', caption:'批准后才能入图', english:'HUMAN REVIEW', method:'STEP 04 · HUMAN-IN-THE-LOOP', title:'由懂设备的人审核关系和适用条件', description:'维修专家确认因果、处置有效性、机型和工况；也可以拒绝或暂缓。未经确认的关系保持候选状态。', footer:'逐条确认或撤销审核' },
+            { short:'形成图谱', caption:'来源可追溯', english:'AUDITABLE GRAPH', method:'STEP 05 · VERSIONED KNOWLEDGE', title:'图谱不仅有节点，还要带证据和边界', description:'入图关系绑定工单、资料版本、设备型号、时间范围和审核人。后续检索时，Agent 才能给出可核查的依据。', footer:'点击节点检查来源与适用范围' }
+          ],
+          nodes: [
+            { id:'machine', label:'机器人第二轴', type:'equipment', typeName:'设备 / 产线对象', x:24, y:155, w:146, h:68, source:'工单 WO-2026-0418 · 设备字段', scope:'产线 A · 机器人单元 02', approved:true },
+            { id:'gearbox', label:'减速机轴承', type:'component', typeName:'设备部件', x:238, y:55, w:154, h:68, source:'工单描述原文 · 嵌套实体', scope:'机器人第二轴减速机', approved:true },
+            { id:'symptom', label:'温度异常', type:'fault', typeName:'故障现象', x:238, y:155, w:154, h:68, source:'“轴承温度异常” · 工单原文', scope:'本次故障事件', approved:false },
+            { id:'alarm', label:'设备报警停机', type:'fault', typeName:'生产状态 / 故障事件', x:238, y:255, w:154, h:68, source:'“设备报警停机” · 工单原文', scope:'发生时间：工单记录时点', approved:false },
+            { id:'cause', label:'润滑不足', type:'cause', typeName:'记录原因', x:474, y:155, w:150, h:68, source:'维修检查记录 · 工单原文', scope:'本次设备与工况', approved:false },
+            { id:'action', label:'补充润滑', type:'action', typeName:'处置措施', x:474, y:55, w:150, h:68, source:'维修处置记录 · 工单原文', scope:'须按设备规程执行', approved:false },
+            { id:'outcome', label:'设备恢复', type:'outcome', typeName:'处置结果', x:474, y:255, w:150, h:68, source:'维修结果记录 · 工单原文', scope:'本次工单结案结果', approved:false }
+          ],
+          relations: [
+            { id:'r1', subject:'机器人第二轴', predicate:'包含部件', object:'减速机轴承', from:'machine', to:'gearbox', confidence:.96, source:'工单设备字段 + 部件名称', path:'M170 174 C197 174 205 89 238 89', labelX:202, labelY:125, status:'approved' },
+            { id:'r2', subject:'减速机轴承', predicate:'出现现象', object:'温度异常', from:'gearbox', to:'symptom', confidence:.92, source:'“轴承温度异常” · 工单原文', path:'M315 123 L315 155', labelX:356, labelY:143, status:'pending' },
+            { id:'r3', subject:'温度异常', predicate:'伴随状态', object:'设备报警停机', from:'symptom', to:'alarm', confidence:.83, source:'同一工单的现象与状态', path:'M315 223 L315 255', labelX:358, labelY:244, status:'pending' },
+            { id:'r4', subject:'温度异常', predicate:'关联原因', object:'润滑不足', from:'symptom', to:'cause', confidence:.78, source:'“检查发现润滑不足” · 原文', path:'M392 190 C425 190 437 190 474 190', labelX:433, labelY:180, status:'pending' },
+            { id:'r5', subject:'润滑不足', predicate:'对应处置', object:'补充润滑', from:'cause', to:'action', confidence:.72, source:'检查与维修处置记录', path:'M530 155 C530 140 530 138 530 123', labelX:566, labelY:143, status:'pending' },
+            { id:'r6', subject:'补充润滑', predicate:'处置后结果', object:'设备恢复', from:'action', to:'outcome', confidence:.88, source:'“补充润滑后设备恢复” · 原文', path:'M550 123 C585 154 585 221 550 255', labelX:601, labelY:192, status:'pending' },
+            { id:'r7', subject:'设备报警停机', predicate:'关联工单', object:'本次工单', from:'alarm', to:'cause', confidence:.61, source:'同一记录关联 · 需确认', path:'M392 289 C430 289 434 240 474 210', labelX:432, labelY:268, status:'pending' }
+          ]
+        };
+      },
+      computed: {
+        currentStage() { return this.stages[this.stageIndex]; },
+        selectedNode() { return this.nodes.find(n => n.id === this.selectedNodeId) || this.nodes[0]; },
+        visibleRelations() { return this.relations.filter(r => r.confidence * 100 >= this.threshold || r.status === 'approved'); },
+        visibleNodeCount() { return this.nodes.length; },
+        relationCount() { return this.relations.length; },
+        approvedCount() { return this.relations.filter(r => r.status === 'approved').length; }
+      },
+      methods: {
+        nextStage() {
+          if (this.stageIndex === 1 && !this.extracted) this.extracted = true;
+          if (this.stageIndex === 3) {
+            this.relations.filter(r => r.confidence * 100 >= this.threshold && r.status === 'pending').forEach(r => this.reviewRelation(r.id, 'approved', false));
+            this.toastMessage('符合当前阈值的关系已加入演示图谱');
+          }
+          this.stageIndex = this.stageIndex < 4 ? this.stageIndex + 1 : 0;
+        },
+        selectNode(id) { this.selectedNodeId = id; this.selectedRelationId = null; },
+        extractCandidates() {
+          this.extracted = true;
+          this.stageIndex = 2;
+          this.toastMessage('已生成候选实体与关系；请继续调整筛选并审核');
+        },
+        reviewRelation(id, status, notify = true) {
+          const relation = this.relations.find(r => r.id === id);
+          if (!relation) return;
+          relation.status = status;
+          if (notify) this.toastMessage(status === 'approved' ? '关系已人工确认' : status === 'rejected' ? '关系已暂不采纳' : '审核状态已撤销');
+        },
+        resetDemo() {
+          this.stageIndex = 0;
+          this.threshold = 70;
+          this.extracted = false;
+          this.selectedNodeId = 'machine';
+          this.selectedRelationId = null;
+          this.relations.forEach(r => r.status = r.id === 'r1' ? 'approved' : 'pending');
+          this.nodes.forEach(n => n.approved = ['machine','gearbox'].includes(n.id));
+          this.toastMessage('演示已重置');
+        },
+        toastMessage(message) {
+          this.toast = message;
+          clearTimeout(this.toastTimer);
+          this.toastTimer = setTimeout(() => this.toast = '', 2200);
+        }
+      },
+      watch: {
+        'relations': { deep:true, handler() {
+          const touched = new Set(this.relations.filter(r => r.status === 'approved').flatMap(r => [r.from, r.to]));
+          this.nodes.forEach(n => { if (!['machine','gearbox'].includes(n.id)) n.approved = touched.has(n.id); });
+        } }
+      }
+    }).mount('#app');
+  </script>
+</body>
+</html>
